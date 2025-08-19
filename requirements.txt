@@ -2,4 +2,4 @@ python-dotenv
 google-generativeai
 uvicorn
 fastapi
-Jinja2Templates
+jinja2
