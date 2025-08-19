@@ -340,7 +340,8 @@
         });
 
         if (!analyzeResponse.ok) {
-          throw new Error(`Analyze API Error: ${analyzeResponse.statusText}`);
+          const errorData = await analyzeResponse.json();
+          throw new Error(errorData.error || `Analyze API Error: ${analyzeResponse.statusText}`);
         }
         const analysisResult = await analyzeResponse.json();
 
@@ -352,7 +353,8 @@
         });
 
         if (!saveResponse.ok) {
-          throw new Error(`Save API Error: ${saveResponse.statusText}`);
+          const errorData = await saveResponse.json();
+          throw new Error(errorData.error || `Save API Error: ${saveResponse.statusText}`);
         }
         const saveData = await saveResponse.json();
 
@@ -430,7 +432,7 @@
 
         const riskHtml = `
           <div class="risk-box ${riskClass}">
-            <p>📊 <strong>ความเสี่ยงซึมเศร้าโดยรวม (7 วัน):</strong> ${risk.level}</p>
+            <p>📊 <strong>ความเสี่ยงซึมเศร้าโดยรวม (90 วัน):</strong> ${risk.level}</p>
             <p>${risk.message}</p>
             <p>คะแนนเฉลี่ยอารมณ์: ${averageScore.toFixed(2)} / 100</p>
           </div>

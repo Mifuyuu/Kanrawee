@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -74,7 +74,7 @@ async def index(request: Request):
 
 # วิเคราะห์อารมณ์
 @app.post("/analyze")
-async def analyze(data: dict):
+async def analyze(data: dict = Body(...)):
     if not model:
         return JSONResponse({"error": "Gemini API is not configured."}, status_code=500)
 
@@ -107,8 +107,7 @@ async def analyze(data: dict):
     """
 
     try:
-        # เรียก Gemini API แบบ async
-        response = await model.generate_content_async(prompt)
+        response = model.generate_content(prompt)
         cleaned = response.text.strip().replace("```json", "").replace("```", "").strip()
         ai_result = json.loads(cleaned)
 
@@ -131,6 +130,34 @@ async def analyze(data: dict):
             "summary": f"เกิดข้อผิดพลาดในการสื่อสารกับ AI: {e}",
             "emotionScore": 50,
         }, status_code=500)
+
+# บันทึกข้อมูล
+@app.post("/save")
+async def save_entry(entry: dict = Body(...)):
+    if not isinstance(entry, dict) or not entry.get("message") or not entry.get("emoji"):
+        return JSONResponse({"error": "Invalid or incomplete entry data"}, status_code=400)
+
+    entry['date'] = datetime.now().strftime("%Y-%m-%d")
+    history = load_history()
+    if not isinstance(history, list):
+        history = []
+    history.append(entry)
+    save_history(history)
+    return JSONResponse({"status": "saved", "entry": entry})
+
+from fastapi import Body
+@app.post('/generate')
+async def generate_text(data: dict = Body(...)):
+    try:
+        prompt = data.get('prompt')
+        if not prompt:
+            return JSONResponse({'error': 'Prompt is missing.'}, status_code=400)
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        return JSONResponse({'response': response.text})
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return JSONResponse({'error': 'Failed to generate response from the model.'}, status_code=500)
 
 # ประวัติย้อนหลัง 90 วัน (FastAPI)
 from fastapi import Response
