@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>วิเคราะห์อารมณ์ด้วย AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --primary-color: #8e44ad;
+      --bg-color: #f9f4fb;
+      --card-bg-color: #f6e8f9;
+      --text-color: #5b2c6f;
+      --border-color: #c39bd3;
+      --calendar-bg: #e9d8f3;
+      --good-color: #ef4db1;
+      --bad-color: #e63a18;
+      --risk-high-bg: #ec7272;
+      --risk-medium-bg: #eaa26e;
+      --risk-low-bg: #f5e981;
+      --risk-normal-bg:#93d696;
+      --risk-high-color: #1d1b1b;
+      --risk-medium-color: #1d1b1b;
+      --risk-low-color :#1d1b1b;
+      --risk-normal-color :#1d1b1b;
+    }
+    body {
+      font-family: "Sarabun", sans-serif;
+      background: linear-gradient(135deg, #f9f4fb, #e9d8f3);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 700px;
+      background: var(--card-bg-color);
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(142, 68, 173, 0.3);
+      padding: 24px 32px;
+      box-sizing: border-box;
+    }
+    h2,
+    h3 {
+      color: var(--primary-color);
+      border-bottom: 3px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-top: 0;
+    }
+    #emojiContainer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 6px;
+    }
+    .emoji-picker {
+      font-size: 36px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 12px;
+      transition: transform 0.25s, background-color 0.25s;
+      user-select: none;
+      border: 2px solid transparent;
+      display: block;
+      text-align: center;
+      width: 48px;
+      color: var(--text-color);
+    }
+    .emoji-picker:hover {
+      transform: scale(1.3);
+      background-color: var(--calendar-bg);
+    }
+    .emoji-picker.selected {
+      background-color: var(--primary-color);
+      color: white;
+      transform: scale(1.15);
+      box-shadow: 0 0 0 5px var(--border-color);
+      border-color: var(--border-color);
+    }
+    textarea {
+      width: 100%;
+      height: 130px;
+      padding: 14px;
+      font-size: 17px;
+      font-family: "Sarabun", sans-serif;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      resize: vertical;
+      box-sizing: border-box;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      transition: border-color 0.3s;
+    }
+    textarea:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      background-color: var(--calendar-bg);
+    }
+    .button-container {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-top: 20px;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: rgb(96, 2, 143);
+      border: none;
+      padding: 14px 28px;
+      font-size: 17px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.25s, box-shadow 0.25s;
+      user-select: none;
+    }
+    button:hover:not(:disabled) {
+      background-color: #732d91;
+      box-shadow: 0 6px 20px rgba(115, 45, 145, 0.7);
+    }
+    button:disabled {
+      background-color: #d6a2e5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .loader {
+      border: 4px solid var(--calendar-bg);
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .result-container {
+      margin-top: 30px;
+      background-color: var(--bg-color);
+      border: 2px solid var(--primary-color);
+      border-radius: 15px;
+      padding: 18px 28px;
+      min-height: 110px;
+      color: var(--text-color);
+      white-space: pre-wrap;
+      font-size: 16px;
+      line-height: 1.3;
+      box-shadow: 0 5px 20px rgba(142, 68, 173, 0.3);
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+    .result-container p {
+      margin: 6px 0;
+    }
+    .result-container p strong {
+      color: var(--good-color);
+      font-weight: 700;
+    }
+    #emojiHint {
+      color: var(--good-color);
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      color: var(--text-color);
+      font-size: 15px;
+    }
+    table th,
+    table td {
+      border: 1px solid var(--border-color);
+      padding: 6px 8px;
+      text-align: center;
+    }
+    table th {
+      background-color: var(--border-color);
+      font-weight: 700;
+    }
+    table tbody tr:nth-child(even) {
+      background-color: var(--bg-color);
+    }
+    .risk-box {
+      margin-top: 16px;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 15px rgba(142, 68, 173, 0.2);
+      white-space: normal;
+      line-height: 1.4;
+    }
+    .risk-high {
+      background-color: var(--risk-high-bg);
+      color: var(--risk-high-color);
+    }
+    .risk-medium {
+      background-color: var(--risk-medium-bg);
+      color: var(--risk-medium-color);
+    }
+    .risk-low {
+      background-color: var(--risk-low-bg);
+      color: var(--risk-low-color);
+    }
+    .risk-normal{
+      background-color: var(--risk-normal-bg);
+      color: var(--risk-normal-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>😊 วิเคราะห์อารมณ์ของคุณ</h2>
+
+    <h3>เลือกอิโมจิแทนความรู้สึก</h3>
+    <div id="emojiContainer"></div>
+    <div id="emojiHint">กรุณาเลือกอิโมจิแทนความรู้สึกก่อน</div>
+
+    <h3>เขียนข้อความบรรยายเพิ่มเติม</h3>
+    <textarea
+      id="textInput"
+      placeholder="วันนี้รู้สึกอย่างไร... ลองเล่าให้ AI ฟังหน่อยสิ"
+    ></textarea>
+
+    <div class="button-container">
+      <button id="analyzeBtn" onclick="analyzeEmotion()" disabled>วิเคราะห์ข้อความ</button>
+      <div class="loader" id="loader"></div>
+    </div>
+
+    <div class="result-container" id="resultBox">
+      <p>ผลการวิเคราะห์จะแสดงที่นี่...</p>
+    </div>
+
+    <h3>📝 ประวัติและการประเมินความเสี่ยงซึมเศร้า</h3>
+    <div id="history7Container"></div>
+  </div>
+
+  <script>
+    const emojiContainer = document.getElementById("emojiContainer");
+    const emojiHint = document.getElementById("emojiHint");
+    const textInput = document.getElementById("textInput");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const loader = document.getElementById("loader");
+    const resultBox = document.getElementById("resultBox");
+    const history7Container = document.getElementById("history7Container");
+
+    const emojis = [
+      { symbol: "😀", label: "ดีใจ" },
+      { symbol: "😢", label: "เศร้า" },
+      { symbol: "😡", label: "โกรธ" },
+      { symbol: "😱", label: "ตกใจกลัว" },
+      { symbol: "😍", label: "รัก" },
+      { symbol: "😞", label: "ผิดหวัง" },
+      { symbol: "😭", label: "เสียใจ" },
+      { symbol: "🤔", label: "สงสัย" }
+    ];
+
+    let selectedEmojiSpan = null;
+
+    function createEmojiPicker() {
+      emojis.forEach(({ symbol, label }) => {
+        const container = document.createElement("div");
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
+        container.style.alignItems = "center";
+        container.style.cursor = "pointer";
+        container.style.userSelect = "none";
+        container.style.width = "48px";
+
+        const span = document.createElement("span");
+        span.textContent = symbol;
+        span.className = "emoji-picker";
+        span.style.fontSize = "36px";
+        span.onclick = () => {
+          if (selectedEmojiSpan === span) {
+            span.classList.remove("selected");
+            selectedEmojiSpan = null;
+            analyzeBtn.disabled = true;
+            emojiHint.style.display = "block";
+          } else {
+            if (selectedEmojiSpan) selectedEmojiSpan.classList.remove("selected");
+            span.classList.add("selected");
+            selectedEmojiSpan = span;
+            analyzeBtn.disabled = textInput.value.trim().length === 0;
+            emojiHint.style.display = "none";
+          }
+        };
+
+        const labelDiv = document.createElement("div");
+        labelDiv.textContent = label;
+        labelDiv.style.fontSize = "12px";
+        labelDiv.style.color = "var(--text-color)";
+        labelDiv.style.marginTop = "4px";
+        labelDiv.style.textAlign = "center";
+        labelDiv.style.userSelect = "none";
+
+        container.appendChild(span);
+        container.appendChild(labelDiv);
+        emojiContainer.appendChild(container);
+      });
+
+      analyzeBtn.disabled = true;
+      emojiHint.style.display = "block";
+    }
+
+    async function analyzeAndSave() {
+      const message = textInput.value.trim();
+      if (!message) {
+        alert("กรุณาป้อนข้อความก่อนทำการวิเคราะห์");
+        return;
+      }
+
+      const selectedEmoji = selectedEmojiSpan ? selectedEmojiSpan.textContent : "";
+      if (!selectedEmoji) {
+        alert("กรุณาเลือกอิโมจิแทนความรู้สึก");
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      loader.style.display = "inline-block";
+      resultBox.innerHTML = "<p>กำลังวิเคราะห์และบันทึกข้อมูล...</p>";
+
+      try {
+        // Step 1: Get analysis from server
+        const analyzeResponse = await fetch("/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, emoji: selectedEmoji }),
+        });
+
+        if (!analyzeResponse.ok) {
+          throw new Error(`Analyze API Error: ${analyzeResponse.statusText}`);
+        }
+        const analysisResult = await analyzeResponse.json();
+
+        // Step 2: Save the complete entry
+        const saveResponse = await fetch("/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(analysisResult),
+        });
+
+        if (!saveResponse.ok) {
+          throw new Error(`Save API Error: ${saveResponse.statusText}`);
+        }
+        const saveData = await saveResponse.json();
+
+        // Display result
+        resultBox.innerHTML = `
+          <p><strong>🤖 ผลการวิเคราะห์จาก AI (บันทึกแล้ว):</strong></p>
+          <p><strong>อารมณ์หลัก:</strong> ${saveData.entry.emotion}</p>
+          <p><strong>สรุป:</strong> ${saveData.entry.summary}</p>
+          <p><strong>คะแนนอารมณ์:</strong> ${saveData.entry.emotionScore} / 100</p>
+        `;
+
+        // Refresh history
+        await renderHistoryAndRisk();
+
+      } catch (err) {
+        resultBox.innerHTML = `<p style="color: red;"><strong>เกิดข้อผิดพลาด:</strong> ${err.message}</p>`;
+      } finally {
+        analyzeBtn.disabled = false;
+        loader.style.display = "none";
+        textInput.value = ""; // Clear input after saving
+      }
+    }
+
+    async function renderHistoryAndRisk() {
+      history7Container.innerHTML = "<p>กำลังโหลดข้อมูลประวัติ...</p>";
+      try {
+  const response = await fetch("/history90");
+        if (!response.ok) {
+          throw new Error(`History API Error: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        const { history90, averageScore, risk } = data;
+
+        if (!history90 || history90.length === 0) {
+          history7Container.innerHTML = "<p>ไม่มีข้อมูลย้อนหลัง 90 วัน</p>";
+          return;
+        }
+
+        let tableHtml = `
+          <table>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>อิโมจิ</th>
+                <th>ข้อความ</th>
+                <th>อารมณ์หลัก</th>
+                <th>คะแนนอารมณ์</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        history90.forEach(entry => {
+          tableHtml += `
+            <tr>
+              <td>${entry.date}</td>
+              <td>${entry.emoji || "-"}</td>
+              <td style="text-align:left;">${entry.message || "-"}</td>
+              <td>${entry.emotion || "-"}</td>
+              <td>${entry.emotionScore}</td>
+            </tr>
+          `;
+        });
+
+        tableHtml += "</tbody></table>";
+
+        const riskLevelMap = {
+          "สูง": "risk-high",
+          "ปานกลาง": "risk-medium",
+          "เล็กน้อย": "risk-low",
+          "ปกติ": "risk-normal"
+        };
+        const riskClass = riskLevelMap[risk.level] || "risk-normal";
+
+        const riskHtml = `
+          <div class="risk-box ${riskClass}">
+            <p>📊 <strong>ความเสี่ยงซึมเศร้าโดยรวม (7 วัน):</strong> ${risk.level}</p>
+            <p>${risk.message}</p>
+            <p>คะแนนเฉลี่ยอารมณ์: ${averageScore.toFixed(2)} / 100</p>
+          </div>
+        `;
+
+        history7Container.innerHTML = tableHtml + riskHtml;
+      } catch (err) {
+        history7Container.innerHTML = `<p style="color: red;"><strong>ไม่สามารถโหลดข้อมูลประวัติได้:</strong> ${err.message}</p>`;
+      }
+    }
+
+    // --- Initial Setup ---
+    createEmojiPicker();
+    renderHistoryAndRisk(); // Load initial history
+
+    // --- Event Listeners ---
+    analyzeBtn.onclick = analyzeAndSave; // Change this line
+
+    textInput.addEventListener("input", () => {
+      analyzeBtn.disabled = !selectedEmojiSpan || textInput.value.trim().length === 0;
+    });
+  </script>
+</body>
+</html>
